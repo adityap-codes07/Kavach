@@ -1,0 +1,63 @@
+# SmartShield Backend Dependencies
+# Python 3.10+
+
+# ── Web Framework ─────────────────────────────────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+httpx==0.27.0
+
+# ── ML / NLP ──────────────────────────────────────────────────────────────────
+torch==2.3.0
+transformers==4.41.0
+tokenizers==0.19.1
+datasets==2.19.1
+scikit-learn==1.4.2
+xgboost==2.0.3
+numpy==1.26.4
+scipy==1.13.0
+
+# ── Explainability ────────────────────────────────────────────────────────────
+shap==0.45.0
+lime==0.2.0.1
+
+# ── Security / URL Analysis ───────────────────────────────────────────────────
+python-whois==0.9.4
+dnspython==2.6.1
+tldextract==5.1.2
+validators==0.28.2
+
+# ── Data Processing ───────────────────────────────────────────────────────────
+pandas==2.2.2
+beautifulsoup4==4.12.3
+lxml==5.2.2
+python-magic==0.4.27
+chardet==5.2.0
+
+# ── Observability / Monitoring ────────────────────────────────────────────────
+prometheus-client==0.20.0
+sentry-sdk[fastapi]==2.3.1
+structlog==24.1.0
+
+# ── Database ──────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.30
+alembic==1.13.1
+asyncpg==0.29.0
+redis==5.0.4
+
+# ── Validation ───────────────────────────────────────────────────────────────
+pydantic==2.7.1
+pydantic-settings==2.2.1
+email-validator==2.1.1
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest==8.2.0
+pytest-asyncio==0.23.6
+pytest-cov==5.0.0
+httpx==0.27.0
+factory-boy==3.3.0
+
+# ── Dev Tools ─────────────────────────────────────────────────────────────────
+ruff==0.4.4
+mypy==1.10.0
+pre-commit==3.7.1

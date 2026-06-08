@@ -1,0 +1,85 @@
+{
+  "manifest_version": 3,
+  "name": "SmartShield — Email Security",
+  "version": "1.0.0",
+  "description": "Context-aware email threat detection using BERT and Explainable AI. Detects phishing, spam, and malicious URLs in real time.",
+  "author": "SmartShield Research Team",
+
+  "icons": {
+    "16":  "assets/icons/shield-16.png",
+    "32":  "assets/icons/shield-32.png",
+    "48":  "assets/icons/shield-48.png",
+    "128": "assets/icons/shield-128.png"
+  },
+
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16":  "assets/icons/shield-16.png",
+      "32":  "assets/icons/shield-32.png"
+    },
+    "default_title": "SmartShield — Scan Email"
+  },
+
+  "background": {
+    "service_worker": "background/service_worker.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mail.google.com/*",
+        "https://outlook.live.com/*",
+        "https://outlook.office.com/*",
+        "https://outlook.office365.com/*",
+        "https://mail.yahoo.com/*",
+        "https://mail.proton.me/*"
+      ],
+      "js": ["content/content_script.js"],
+      "css": ["content/content_styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus",
+    "clipboardRead",
+    "notifications"
+  ],
+
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://outlook.live.com/*",
+    "https://outlook.office.com/*",
+    "https://mail.yahoo.com/*",
+    "https://mail.proton.me/*"
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "popup/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://smartshield-api.yourdomain.com;"
+  },
+
+  "commands": {
+    "scan-clipboard": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Scan clipboard email content"
+    }
+  },
+
+  "options_page": "options/index.html",
+
+  "minimum_chrome_version": "102"
+}
