@@ -1,5 +1,5 @@
 """
-SmartShield — Email Analyzer Service
+Kavach — Email Analyzer Service
 =====================================
 Orchestrates: BERT inference, URL analysis, header inspection,
               sender reputation, XGBoost fallback, risk scoring.

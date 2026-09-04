@@ -1,4 +1,4 @@
-# SmartShield — Production Docker Compose
+# Kavach — Production Docker Compose
 # =========================================
 # Services:
 #   api        — FastAPI backend + ML models
@@ -15,7 +15,7 @@
 version: "3.9"
 
 networks:
-  smartshield_net:
+  kavach_net:
     driver: bridge
 
 volumes:
@@ -34,11 +34,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: production
-    image: smartshield-api:latest
-    container_name: smartshield_api
+    image: kavach-api:latest
+    container_name: kavach_api
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql+asyncpg://smartshield:${POSTGRES_PASSWORD}@postgres:5432/smartshield
+      - DATABASE_URL=postgresql+asyncpg://kavach:${POSTGRES_PASSWORD}@postgres:5432/kavach
       - REDIS_URL=redis://redis:6379/0
       - MODEL_PATH=/app/models/bert_v1
       - WORKERS=4
@@ -61,7 +61,7 @@ services:
       retries: 3
       start_period: 60s
     networks:
-      - smartshield_net
+      - kavach_net
     deploy:
       resources:
         limits:
@@ -74,27 +74,27 @@ services:
   # ── PostgreSQL ───────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: smartshield_postgres
+    container_name: kavach_postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=smartshield
-      - POSTGRES_USER=smartshield
+      - POSTGRES_DB=kavach
+      - POSTGRES_USER=kavach
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smartshield -d smartshield"]
+      test: ["CMD-SHELL", "pg_isready -U kavach -d kavach"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - smartshield_net
+      - kavach_net
 
   # ── Redis ────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: smartshield_redis
+    container_name: kavach_redis
     restart: unless-stopped
     command: >
       redis-server
@@ -110,12 +110,12 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - smartshield_net
+      - kavach_net
 
   # ── NGINX ────────────────────────────────────────────────────────────────
   nginx:
     image: nginx:1.25-alpine
-    container_name: smartshield_nginx
+    container_name: kavach_nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -127,12 +127,12 @@ services:
     depends_on:
       - api
     networks:
-      - smartshield_net
+      - kavach_net
 
   # ── Prometheus ───────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
-    container_name: smartshield_prometheus
+    container_name: kavach_prometheus
     restart: unless-stopped
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -141,12 +141,12 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=30d"
     networks:
-      - smartshield_net
+      - kavach_net
 
   # ── Grafana ──────────────────────────────────────────────────────────────
   grafana:
     image: grafana/grafana:latest
-    container_name: smartshield_grafana
+    container_name: kavach_grafana
     restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
@@ -157,4 +157,4 @@ services:
     depends_on:
       - prometheus
     networks:
-      - smartshield_net
+      - kavach_net

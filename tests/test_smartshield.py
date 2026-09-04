@@ -1,5 +1,5 @@
 """
-SmartShield — Test Suite
+Kavach — Test Suite
 =========================
 Test coverage:
   Unit tests:

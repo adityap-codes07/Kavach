@@ -1,5 +1,5 @@
 """
-SmartShield — Database Schema (SQLAlchemy 2.0)
+Kavach — Database Schema (SQLAlchemy 2.0)
 ================================================
 Tables:
   analyses          — one row per email analyzed
@@ -214,7 +214,7 @@ def create_engine_and_session(database_url: str):
     Create async engine and session factory.
 
     Example database_url:
-      postgresql+asyncpg://user:password@localhost:5432/smartshield
+      postgresql+asyncpg://user:password@localhost:5432/kavach
     """
     engine = create_async_engine(
         database_url,

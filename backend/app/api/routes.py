@@ -1,5 +1,5 @@
 """
-SmartShield — API Routes
+Kavach — API Routes
 ==========================
 Endpoints:
   POST /analyze/text        — analyze raw email text
@@ -52,9 +52,9 @@ class TokenImportanceSchema(BaseModel):
 class ExplainResultSchema(BaseModel):
     method: str
     natural_language_summary: str
-    top_positive_tokens: List[tuple]
-    top_negative_tokens: List[tuple]
-    token_importances: List[TokenImportanceSchema]
+    top_positive_tokens: List[tuple] = Field(default_factory=list)
+    top_negative_tokens: List[tuple] = Field(default_factory=list)
+    token_importances: List[TokenImportanceSchema] = Field(default_factory=list)
 
 
 class URLAnalysisSchema(BaseModel):
@@ -89,11 +89,14 @@ class AnalysisResponse(BaseModel):
     risk_level: str
     confidence: float
     flagged_keywords: List[str]
+    spam_patterns_found: List[str] = Field(default_factory=list)
     recommendations: List[RecommendationSchema]
     risk_breakdown: RiskBreakdownSchema
     url_analysis: Dict
     header_analysis: Dict
-    explanation: Optional[ExplainResultSchema]
+    explanation: Optional[ExplainResultSchema] = None
+    bert_probabilities: Optional[Dict[str, float]] = None
+    bert_inference_ms: Optional[float] = 0.0
     total_latency_ms: float
     analysis_timestamp: float
 
@@ -121,6 +124,23 @@ def get_analyzer(request: Request):
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
+@router.get("/health", tags=["Infrastructure"])
+async def api_health():
+    return {"status": "healthy", "version": "1.0.0"}
+
+
+@router.post(
+    "/analyze",
+    response_model=AnalysisResponse,
+    include_in_schema=False,
+)
+async def analyze_alias(
+    request: EmailTextRequest,
+    analyzer=Depends(get_analyzer),
+):
+    return await analyze_text(request, analyzer)
+
+
 @router.post(
     "/analyze/text",
     response_model=AnalysisResponse,
@@ -137,7 +157,7 @@ async def analyze_text(
     analyzer=Depends(get_analyzer),
 ):
     """
-    Submit email body text for full SmartShield analysis.
+    Submit email body text for full Kavach analysis.
 
     Returns:
     - Classification (LEGITIMATE / SPAM / PHISHING)
@@ -363,8 +383,8 @@ def _serialize_result(result, include_explanation: bool = True) -> dict:
         out["explanation"] = {
             "method": er.method,
             "natural_language_summary": er.natural_language_summary,
-            "top_positive_tokens": er.top_positive_tokens,
-            "top_negative_tokens": er.top_negative_tokens,
-            "token_count": len(er.token_importances),
+            "top_positive_tokens": er.top_positive_tokens or [],
+            "top_negative_tokens": er.top_negative_tokens or [],
+            "token_importances": [safe_asdict(ti) for ti in (er.token_importances or [])],
         }
     return out

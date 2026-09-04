@@ -1,4 +1,4 @@
-# SmartShield Backend Dependencies
+# Kavach Backend Dependencies
 # Python 3.10+
 
 # ── Web Framework ─────────────────────────────────────────────────────────────

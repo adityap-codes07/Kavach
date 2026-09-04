@@ -1,5 +1,5 @@
 """
-SmartShield — URL Analyzer Service
+Kavach — URL Analyzer Service
 ====================================
 Features:
   - URL extraction via regex + BeautifulSoup fallback
@@ -283,21 +283,30 @@ class URLAnalyzer:
         return prev[-1]
 
     def _check_domain_age(self, domain: str) -> Tuple[Optional[int], bool]:
+        top_domain = ".".join(domain.split(".")[-2:]) if "." in domain else domain
+        if top_domain in TRUSTED_DOMAINS or domain in TRUSTED_DOMAINS:
+            return 3650, False
+
         try:
-            w = whois.whois(domain)
-            creation = w.creation_date
-            if isinstance(creation, list):
-                creation = creation[0]
-            if creation:
-                age = (datetime.now(timezone.utc) - creation.replace(tzinfo=timezone.utc)).days
-                return age, age < 30
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(1.0)
+            try:
+                w = whois.whois(domain)
+                creation = w.creation_date
+                if isinstance(creation, list):
+                    creation = creation[0]
+                if creation:
+                    age = (datetime.now(timezone.utc) - creation.replace(tzinfo=timezone.utc)).days
+                    return age, age < 30
+            finally:
+                socket.setdefaulttimeout(old_timeout)
         except Exception:
             pass
         return None, False
 
     def _follow_redirects(self, url: str) -> Tuple[int, Optional[str]]:
         try:
-            with httpx.Client(follow_redirects=True, timeout=self.timeout,
+            with httpx.Client(follow_redirects=True, timeout=1.0,
                               max_redirects=self.max_redirect_depth) as client:
                 r = client.head(url)
                 history_len = len(r.history)

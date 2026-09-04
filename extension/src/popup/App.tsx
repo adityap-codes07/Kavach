@@ -1,5 +1,5 @@
 /**
- * SmartShield — Extension Popup (React + TypeScript)
+ * Kavach — Extension Popup (React + TypeScript)
  * =====================================================
  * Main popup component rendered when the extension icon is clicked.
  * Features: email scan, risk gauge, XAI explanation, recommendations,
@@ -233,24 +233,50 @@ export const App: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // ── Check API status on mount ────────────────────────────────────────────
+  const checkStatus = useCallback(async () => {
+    try {
+      const res = await chrome.runtime.sendMessage({ type: "GET_API_STATUS" });
+      if (res?.status === "healthy") {
+        setApiStatus("online");
+        return;
+      }
+    } catch {}
+
+    try {
+      const direct = await fetch("http://localhost:8000/health");
+      if (direct.ok) {
+        setApiStatus("online");
+        return;
+      }
+    } catch {}
+
+    setApiStatus("offline");
+  }, []);
+
   useEffect(() => {
-    chrome.runtime.sendMessage({ type: "GET_API_STATUS" }).then((res) => {
-      setApiStatus(res?.status === "healthy" ? "online" : "offline");
-    }).catch(() => setApiStatus("offline"));
+    checkStatus();
+    const interval = setInterval(checkStatus, 15000);
+
 
     // Load cached last result
-    chrome.storage.session.get("lastResult").then((data) => {
-      if (data.lastResult) {
-        setResult(data.lastResult);
-        setActiveTab("result");
-      }
-    });
+    if (chrome?.storage?.session) {
+      chrome.storage.session.get("lastResult").then((data) => {
+        if (data?.lastResult) {
+          setResult(data.lastResult);
+          setActiveTab("result");
+        }
+      }).catch(() => {});
+    }
 
     // Load history
-    chrome.storage.local.get("analysisHistory").then((data) => {
-      setHistory(data.analysisHistory || []);
-    });
-  }, []);
+    if (chrome?.storage?.local) {
+      chrome.storage.local.get("analysisHistory").then((data) => {
+        setHistory(data?.analysisHistory || []);
+      }).catch(() => {});
+    }
+
+    return () => clearInterval(interval);
+  }, [checkStatus]);
 
   // ── Scan handler ──────────────────────────────────────────────────────────
   const handleScan = useCallback(async () => {
@@ -259,28 +285,80 @@ export const App: React.FC = () => {
 
     setIsScanning(true);
     try {
-      const res: AnalysisResult = await chrome.runtime.sendMessage({
-        type: "ANALYZE_EMAIL",
-        payload: { content: text, subject: "", sender: "" },
-      });
+      let res: AnalysisResult;
+
+      // Try chrome.runtime.sendMessage first, fall back to direct fetch
+      try {
+        res = await chrome.runtime.sendMessage({
+          type: "ANALYZE_EMAIL",
+          payload: { content: text, subject: "", sender: "" },
+        });
+      } catch {
+        // Fallback: call the API directly if service worker is unavailable
+        const resp = await fetch("http://localhost:8000/api/v1/analyze/text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: text, subject: "", sender: "" }),
+        });
+        if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+        res = await resp.json();
+      }
+
+      if (!res || typeof res !== "object") {
+        alert("Received an invalid response from the server.");
+        return;
+      }
 
       if (res.error) {
         alert(`Analysis failed: ${res.error}`);
         return;
       }
 
-      setResult(res);
+      // Normalize: fill in defaults for any missing fields so rendering never crashes
+      const safe: AnalysisResult = {
+        email_hash: res.email_hash ?? "",
+        subject: res.subject ?? "",
+        sender: res.sender ?? "",
+        classification: res.classification ?? "LEGITIMATE",
+        risk_score: res.risk_score ?? 0,
+        risk_level: res.risk_level ?? "safe",
+        confidence: res.confidence ?? 0,
+        flagged_keywords: Array.isArray(res.flagged_keywords) ? res.flagged_keywords : [],
+        spam_patterns_found: Array.isArray(res.spam_patterns_found) ? res.spam_patterns_found : [],
+        recommendations: Array.isArray(res.recommendations) ? res.recommendations : [],
+        risk_breakdown: {
+          bert_contribution: res.risk_breakdown?.bert_contribution ?? 0,
+          url_contribution: res.risk_breakdown?.url_contribution ?? 0,
+          header_contribution: res.risk_breakdown?.header_contribution ?? 0,
+          sender_contribution: res.risk_breakdown?.sender_contribution ?? 0,
+          keyword_contribution: res.risk_breakdown?.keyword_contribution ?? 0,
+        },
+        url_analysis: res.url_analysis ?? { urls_found: 0, malicious_url_count: 0, newly_registered_domain_count: 0, typosquat_count: 0, aggregate_risk: 0, summary: "" },
+        header_analysis: res.header_analysis ?? { spf_pass: false, dkim_pass: false, dmarc_pass: false, sender_trust_score: 0, risk_score: 0, flags: [] },
+        explanation: res.explanation ?? undefined,
+        bert_probabilities: res.bert_probabilities ?? { LEGITIMATE: 0, SPAM: 0, PHISHING: 0 },
+        bert_inference_ms: res.bert_inference_ms ?? 0,
+        total_latency_ms: res.total_latency_ms ?? 0,
+        fromCache: res.fromCache,
+        error: res.error,
+      };
+
+      setResult(safe);
       setActiveTab("result");
-      chrome.storage.session.set({ lastResult: res });
+      if (chrome?.storage?.session) {
+        chrome.storage.session.set({ lastResult: safe }).catch(() => {});
+      }
 
       // Update history (last 20)
       setHistory(prev => {
-        const updated = [res, ...prev.filter(h => h.email_hash !== res.email_hash)].slice(0, 20);
-        chrome.storage.local.set({ analysisHistory: updated });
+        const updated = [safe, ...prev.filter(h => h.email_hash !== safe.email_hash)].slice(0, 20);
+        if (chrome?.storage?.local) {
+          chrome.storage.local.set({ analysisHistory: updated }).catch(() => {});
+        }
         return updated;
       });
     } catch (err) {
-      alert("Connection error. Please check your SmartShield API connection.");
+      alert("Connection error. Please check your Kavach API connection.");
     } finally {
       setIsScanning(false);
     }
@@ -339,7 +417,7 @@ export const App: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-sm">🛡️</div>
           <div>
-            <div className="text-sm font-bold tracking-tight">SmartShield</div>
+            <div className="text-sm font-bold tracking-tight">Kavach</div>
             <div className="text-xs text-slate-400 font-mono">Email Security · BERT + XAI</div>
           </div>
         </div>
@@ -486,29 +564,31 @@ export const App: React.FC = () => {
             </section>
 
             {/* Auth checks */}
-            <section>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 font-mono">
-                Email Authentication
-              </h3>
-              <div className="bg-gray-50 rounded-lg px-3 py-1">
-                <AuthCheck pass={result.header_analysis.spf_pass}  label="SPF" />
-                <AuthCheck pass={result.header_analysis.dkim_pass} label="DKIM" />
-                <AuthCheck pass={result.header_analysis.dmarc_pass} label="DMARC" />
-              </div>
-            </section>
-
-            {/* URL analysis */}
-            {result.url_analysis.urls_found > 0 && (
+            {result.header_analysis && (
               <section>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 font-mono">
-                  URL Analysis ({result.url_analysis.urls_found} found)
+                  Email Authentication
+                </h3>
+                <div className="bg-gray-50 rounded-lg px-3 py-1">
+                  <AuthCheck pass={!!result.header_analysis.spf_pass}  label="SPF" />
+                  <AuthCheck pass={!!result.header_analysis.dkim_pass} label="DKIM" />
+                  <AuthCheck pass={!!result.header_analysis.dmarc_pass} label="DMARC" />
+                </div>
+              </section>
+            )}
+
+            {/* URL analysis */}
+            {Boolean(result.url_analysis && result.url_analysis.urls_found > 0) && (
+              <section>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 font-mono">
+                  URL Analysis ({result.url_analysis?.urls_found || 0} found)
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { label: "Malicious", val: result.url_analysis.malicious_url_count,            bad: true },
-                    { label: "New Domains", val: result.url_analysis.newly_registered_domain_count, bad: true },
-                    { label: "Typosquats",  val: result.url_analysis.typosquat_count,               bad: true },
-                    { label: "Agg. Risk",   val: `${(result.url_analysis.aggregate_risk * 100).toFixed(0)}%`, bad: result.url_analysis.aggregate_risk > 0.3 },
+                    { label: "Malicious", val: result.url_analysis?.malicious_url_count || 0,            bad: true },
+                    { label: "New Domains", val: result.url_analysis?.newly_registered_domain_count || 0, bad: true },
+                    { label: "Typosquats",  val: result.url_analysis?.typosquat_count || 0,               bad: true },
+                    { label: "Agg. Risk",   val: `${((result.url_analysis?.aggregate_risk || 0) * 100).toFixed(0)}%`, bad: (result.url_analysis?.aggregate_risk || 0) > 0.3 },
                   ].map(({ label, val, bad }) => (
                     <div key={label} className={`px-3 py-2 rounded-lg text-center border ${
                       bad && Number(val) > 0 ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-200"
@@ -522,16 +602,17 @@ export const App: React.FC = () => {
             )}
 
             {/* BERT probabilities */}
-            <section>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 font-mono">
-                Model Probabilities
-              </h3>
-              {(["LEGITIMATE", "SPAM", "PHISHING"] as Classification[]).map((cls) => {
-                const prob = result.bert_probabilities[cls] ?? 0;
-                const colors = { LEGITIMATE: "#22c55e", SPAM: "#f59e0b", PHISHING: "#ef4444" };
-                return (
-                  <div key={cls} className="flex items-center gap-2 py-1">
-                    <span className="text-xs font-mono text-gray-400 w-20">{cls}</span>
+            {result.bert_probabilities && (
+              <section>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 font-mono">
+                  Model Probabilities
+                </h3>
+                {(["LEGITIMATE", "SPAM", "PHISHING"] as Classification[]).map((cls) => {
+                  const prob = result.bert_probabilities?.[cls] ?? 0;
+                  const colors = { LEGITIMATE: "#22c55e", SPAM: "#f59e0b", PHISHING: "#ef4444" };
+                  return (
+                    <div key={cls} className="flex items-center gap-2 py-1">
+                      <span className="text-xs font-mono text-gray-400 w-20">{cls}</span>
                     <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-700"
@@ -545,9 +626,10 @@ export const App: React.FC = () => {
                 );
               })}
             </section>
+          )}
 
             {/* Flagged keywords */}
-            {result.flagged_keywords.length > 0 && (
+            {Array.isArray(result.flagged_keywords) && result.flagged_keywords.length > 0 && (
               <section>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 font-mono">
                   Flagged Keywords
@@ -607,7 +689,7 @@ export const App: React.FC = () => {
                 Recommendations
               </h3>
               <div className="space-y-2">
-                {result.recommendations.map((rec, i) => (
+                {(result.recommendations ?? []).map((rec, i) => (
                   <div
                     key={i}
                     className="rounded-lg border overflow-hidden cursor-pointer"
@@ -622,7 +704,7 @@ export const App: React.FC = () => {
                     onClick={() => setExpandedReco(expandedReco === i ? null : i)}
                   >
                     <div className="flex items-start gap-2 px-3 py-2">
-                      <span className="text-base flex-shrink-0">{SEVERITY_ICONS[rec.severity]}</span>
+                      <span className="text-base flex-shrink-0">{SEVERITY_ICONS[rec.severity] ?? "🔵"}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-xs font-bold text-gray-600">{rec.category}</span>
@@ -651,7 +733,7 @@ export const App: React.FC = () => {
             {/* Performance footer */}
             <div className="flex items-center justify-between pt-2 border-t border-gray-100">
               <span className="text-xs font-mono text-gray-300">
-                {result.total_latency_ms.toFixed(1)}ms · BERT {result.bert_inference_ms.toFixed(1)}ms
+                {(result.total_latency_ms ?? 0).toFixed(1)}ms · BERT {(result.bert_inference_ms ?? 0).toFixed(1)}ms
               </span>
               <button
                 onClick={() => { setEmailText(""); setActiveTab("scan"); }}
@@ -706,7 +788,7 @@ export const App: React.FC = () => {
             </label>
             <input
               type="url"
-              defaultValue="https://smartshield-api.yourdomain.com"
+              defaultValue="https://kavach-api.yourdomain.com"
               className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 font-mono
                 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
@@ -715,10 +797,12 @@ export const App: React.FC = () => {
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 font-mono">
               Alert Threshold
             </label>
-            <select className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2
+            <select
+              defaultValue="60"
+              className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2
               focus:outline-none focus:ring-2 focus:ring-blue-300">
               <option value="40">Medium (40+)</option>
-              <option value="60" selected>High (60+)</option>
+              <option value="60">High (60+)</option>
               <option value="80">Critical only (80+)</option>
             </select>
           </div>
@@ -736,7 +820,7 @@ export const App: React.FC = () => {
           </div>
           <div className="pt-2 border-t border-gray-100">
             <p className="text-xs text-gray-400 font-mono text-center">
-              SmartShield v1.0.0 · BERT + XAI
+              Kavach v1.0.0 · BERT + XAI
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 """
-SmartShield — Model Evaluation & Benchmark Suite
+Kavach — Model Evaluation & Benchmark Suite
 ==================================================
 Evaluates BERT, DistilBERT, RoBERTa, XGBoost, TF-IDF+LR across all metrics:
   - Accuracy, Precision, Recall, F1 (macro + per-class)
@@ -426,7 +426,7 @@ def evaluate_all(
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="SmartShield model evaluation suite")
+    parser = argparse.ArgumentParser(description="Kavach model evaluation suite")
     parser.add_argument("--model_dir",   default="checkpoints")
     parser.add_argument("--test_data",   default="data/processed/test.jsonl")
     parser.add_argument("--output_dir",  default="evaluation/results")

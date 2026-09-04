@@ -1,5 +1,5 @@
 """
-SmartShield — Data Preprocessing Pipeline
+Kavach — Data Preprocessing Pipeline
 ==========================================
 Processes four public email security datasets into a unified JSONL format
 ready for BERT fine-tuning.
@@ -360,7 +360,7 @@ def save_stats(train, val, test, output_dir: Path):
 # Main pipeline
 # ─────────────────────────────────────────────────────────────────────────────
 def run_pipeline(raw_dir: Path, output_dir: Path):
-    logger.info("Starting SmartShield data preprocessing pipeline…")
+    logger.info("Starting Kavach data preprocessing pipeline…")
 
     # Load all datasets
     all_samples: List[Dict] = []
@@ -400,7 +400,7 @@ def run_pipeline(raw_dir: Path, output_dir: Path):
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="SmartShield data preprocessor")
+    parser = argparse.ArgumentParser(description="Kavach data preprocessor")
     parser.add_argument("--raw_dir", default="data/raw")
     parser.add_argument("--output_dir", default="data/processed")
     args = parser.parse_args()

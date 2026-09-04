@@ -1,4 +1,4 @@
-# SmartShield — Backend Dockerfile
+# Kavach — Backend Dockerfile
 # ===================================
 # Multi-stage build:
 #   builder  → installs Python deps with wheels
@@ -22,12 +22,12 @@ RUN pip install --upgrade pip setuptools wheel \
 # ── Production stage ─────────────────────────────────────────────────────────
 FROM python:3.11-slim-bookworm AS production
 
-LABEL maintainer="SmartShield Research Team"
+LABEL maintainer="Kavach Research Team"
 LABEL version="1.0.0"
-LABEL description="SmartShield Email Security API"
+LABEL description="Kavach Email Security API"
 
 # Non-root user for security
-RUN groupadd -r smartshield && useradd -r -g smartshield smartshield
+RUN groupadd -r kavach && useradd -r -g kavach kavach
 
 WORKDIR /app
 
@@ -49,10 +49,10 @@ COPY alembic.ini .
 
 # Create directories
 RUN mkdir -p /app/models /app/logs && \
-    chown -R smartshield:smartshield /app
+    chown -R kavach:kavach /app
 
 # Switch to non-root
-USER smartshield
+USER kavach
 
 # Expose port
 EXPOSE 8000

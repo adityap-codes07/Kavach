@@ -1,36 +1,34 @@
 /**
- * SmartShield — Background Service Worker (Manifest V3)
+ * Kavach — Background Service Worker (Manifest V3)
  * =====================================================
  * Handles:
  *  - Message routing between content scripts and popup
- *  - API calls to SmartShield backend
+ *  - API calls to Kavach backend
  *  - Cache management (IndexedDB for analysis history)
  *  - Context menu registration
  *  - Notification dispatch
  *  - Badge updates based on risk level
  */
 
-import { SmartShieldAPI } from "../utils/api.js";
+import { KavachAPI } from "../utils/api.js";
 import { AnalysisCache } from "../utils/cache.js";
 
-const API_BASE_URL = "https://smartshield-api.yourdomain.com/api/v1";
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const API_BASE_URL = "http://localhost:8000/api/v1";
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
-const api = new SmartShieldAPI(API_BASE_URL);
+const api = new KavachAPI(API_BASE_URL);
 const cache = new AnalysisCache();
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Context menus
-// ─────────────────────────────────────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id: "smartshield-analyze-selection",
-    title: "🛡️ Scan with SmartShield",
+    id: "kavach-analyze-selection",
+    title: "🛡️ Scan with Kavach",
     contexts: ["selection"],
   });
 
   chrome.contextMenus.create({
-    id: "smartshield-analyze-page",
+    id: "kavach-analyze-page",
     title: "🛡️ Scan this email page",
     contexts: ["page"],
     documentUrlPatterns: [
@@ -40,43 +38,37 @@ chrome.runtime.onInstalled.addListener(() => {
     ],
   });
 
-  // Set default badge
   chrome.action.setBadgeText({ text: "" });
   chrome.action.setBadgeBackgroundColor({ color: "#22c55e" });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Context menu click handler
-// ─────────────────────────────────────────────────────────────────────────────
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === "smartshield-analyze-selection" && info.selectionText) {
+  if (info.menuItemId === "kavach-analyze-selection" && info.selectionText) {
     await analyzeAndNotify(info.selectionText, tab?.id);
   }
-  if (info.menuItemId === "smartshield-analyze-page" && tab?.id) {
+  if (info.menuItemId === "kavach-analyze-page" && tab?.id) {
     chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_EMAIL_CONTENT" });
   }
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Keyboard shortcut handler
-// ─────────────────────────────────────────────────────────────────────────────
-chrome.commands.onCommand.addListener(async (command) => {
-  if (command === "scan-clipboard") {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) {
-      chrome.tabs.sendMessage(tab.id, { type: "READ_CLIPBOARD_AND_SCAN" });
+if (chrome.commands?.onCommand) {
+  chrome.commands.onCommand.addListener(async (command) => {
+    if (command === "scan-clipboard") {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        chrome.tabs.sendMessage(tab.id, { type: "READ_CLIPBOARD_AND_SCAN" });
+      }
     }
-  }
-});
+  });
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Message router
-// ─────────────────────────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handleMessage(message, sender)
     .then(sendResponse)
     .catch((err) => sendResponse({ error: err.message }));
-  return true; // keep channel open for async response
+  return true;
 });
 
 async function handleMessage(message, sender) {
@@ -119,15 +111,11 @@ async function handleMessage(message, sender) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Core analysis logic
-// ─────────────────────────────────────────────────────────────────────────────
 async function analyzeEmail({ content, subject = "", sender = "", headers = {} }) {
   if (!content?.trim()) {
     return { error: "No email content to analyze." };
   }
 
-  // Check cache
   const hashInput = content + subject + sender;
   const cacheKey = await hashString(hashInput);
   const cached = await cache.get(cacheKey);
@@ -141,7 +129,7 @@ async function analyzeEmail({ content, subject = "", sender = "", headers = {} }
     updateBadge(result.risk_score, result.risk_level);
     return result;
   } catch (err) {
-    console.error("[SmartShield] Analysis failed:", err);
+    console.error("[Kavach] Analysis failed:", err);
     return { error: `Analysis failed: ${err.message}` };
   }
 }
@@ -161,13 +149,12 @@ async function analyzeAndNotify(content, tabId, extras = {}) {
 
   if (result.error) return result;
 
-  // Show browser notification for high-risk emails
   if (result.risk_score >= 60) {
     const severity = result.risk_level.toUpperCase();
     chrome.notifications.create({
       type: "basic",
       iconUrl: "assets/icons/shield-48.png",
-      title: `⚠️ SmartShield: ${severity} Risk Detected`,
+      title: `⚠️ Kavach: ${severity} Risk Detected`,
       message: result.recommendations?.[0]?.message || "Suspicious email detected.",
       priority: result.risk_score >= 80 ? 2 : 1,
     });
@@ -176,16 +163,13 @@ async function analyzeAndNotify(content, tabId, extras = {}) {
   return result;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Badge management
-// ─────────────────────────────────────────────────────────────────────────────
 function updateBadge(riskScore, riskLevel) {
   const colorMap = {
-    safe:     "#22c55e",   // green
-    low:      "#86efac",   // light green
-    medium:   "#f59e0b",   // amber
-    high:     "#ef4444",   // red
-    critical: "#7f1d1d",   // dark red
+    safe: "#22c55e",
+    low: "#86efac",
+    medium: "#f59e0b",
+    high: "#ef4444",
+    critical: "#7f1d1d",
   };
 
   const color = colorMap[riskLevel] || "#6b7280";
@@ -195,9 +179,6 @@ function updateBadge(riskScore, riskLevel) {
   chrome.action.setBadgeBackgroundColor({ color });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Utilities
-// ─────────────────────────────────────────────────────────────────────────────
 async function hashString(str) {
   const buf = await crypto.subtle.digest(
     "SHA-256",

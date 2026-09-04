@@ -1,7 +1,7 @@
 """
-SmartShield — BERT Fine-Tuning Script
+Kavach — BERT Fine-Tuning Script
 =======================================
-Trains BERT / DistilBERT / RoBERTa on the combined SmartShield corpus:
+Trains BERT / DistilBERT / RoBERTa on the combined Kavach corpus:
   - Enron Email Dataset
   - SpamAssassin Public Corpus
   - CEAS 2008 Challenge Dataset
@@ -180,7 +180,7 @@ class BERTTrainer:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
         if args.wandb:
-            wandb.init(project="smartshield", name=f"{args.model}-finetune",
+            wandb.init(project="kavach", name=f"{args.model}-finetune",
                        config=vars(args))
 
     # ── Build dataloaders ─────────────────────────────────────────────────────
@@ -354,7 +354,7 @@ class BERTTrainer:
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="SmartShield BERT fine-tuner")
+    p = argparse.ArgumentParser(description="Kavach BERT fine-tuner")
     p.add_argument("--model", choices=["bert", "distilbert", "roberta"], default="bert")
     p.add_argument("--data_dir", default="data/processed")
     p.add_argument("--output_dir", default="checkpoints/bert_v1")

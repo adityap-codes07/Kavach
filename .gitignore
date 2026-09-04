@@ -1,0 +1,19 @@
+# Virtual Environments
+backend/venv/
+venv/
+.venv/
+
+# Node Dependencies & Build Artifacts
+node_modules/
+extension/node_modules/
+extension/dist/
+
+# Python Cache
+**/__pycache__/
+*.pyc
+
+# Environment Secrets
+.env
+*.env
+# ML Model Checkpoints
+backend/checkpoints/

@@ -1,21 +1,21 @@
 /**
- * SmartShield — Content Script
+ * Kavach — Content Script
  * ==============================
  * Injected into: Gmail, Outlook, Yahoo Mail, ProtonMail
  *
  * Features:
  *  - Auto-detect open email in reading pane
  *  - Extract subject, sender, headers, and body text
- *  - Inject SmartShield inline risk badge into email header area
- *  - One-click "Scan with SmartShield" button per email
+ *  - Inject Kavach inline risk badge into email header area
+ *  - One-click "Scan with Kavach" button per email
  *  - Passive background scanning with configurable threshold
  */
 
 (function () {
   "use strict";
 
-  if (window.__smartshield_injected) return;
-  window.__smartshield_injected = true;
+  if (window.__kavach_injected) return;
+  window.__kavach_injected = true;
 
   // ──────────────────────────────────────────────────────────────────────────
   // Platform detection
@@ -89,7 +89,7 @@
   // ──────────────────────────────────────────────────────────────────────────
   // Risk badge injection
   // ──────────────────────────────────────────────────────────────────────────
-  const BADGE_ID = "smartshield-badge";
+  const BADGE_ID = "kavach-badge";
 
   function injectBadge(riskScore, riskLevel, classification) {
     removeBadge();
@@ -132,7 +132,7 @@
                  riskLevel === "critical" ? "🚨" : "⚠️";
 
     badge.innerHTML = `
-      <span>${icon} SmartShield</span>
+      <span>${icon} Kavach</span>
       <span style="font-weight: 700;">Risk: ${riskScore}/100</span>
       <span style="opacity: 0.7;">${classification}</span>
       <span style="opacity: 0.5; font-size: 10px;">↗ Details</span>
@@ -152,7 +152,7 @@
   // ──────────────────────────────────────────────────────────────────────────
   // Scan button injection
   // ──────────────────────────────────────────────────────────────────────────
-  const SCAN_BTN_ID = "smartshield-scan-btn";
+  const SCAN_BTN_ID = "kavach-scan-btn";
 
   function injectScanButton() {
     if (document.getElementById(SCAN_BTN_ID)) return;
@@ -178,7 +178,7 @@
       transition: background 0.15s;
     `;
     btn.innerHTML = "🛡️ Scan";
-    btn.title = "Scan with SmartShield";
+    btn.title = "Scan with Kavach";
 
     btn.addEventListener("mouseenter", () => btn.style.background = "#1e40af");
     btn.addEventListener("mouseleave", () => btn.style.background = "#1d4ed8");
@@ -252,5 +252,5 @@
   // Initial injection attempt
   setTimeout(injectScanButton, 2000);
 
-  console.log(`[SmartShield] Content script loaded on ${PLATFORM}`);
+  console.log(`[Kavach] Content script loaded on ${PLATFORM}`);
 })();

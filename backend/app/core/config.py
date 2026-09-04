@@ -1,5 +1,5 @@
 """
-SmartShield — Application Configuration
+Kavach — Application Configuration
 =========================================
 All settings loaded from environment variables with sane defaults.
 """
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://smartshield:password@localhost:5432/smartshield"
+        default="postgresql+asyncpg://kavach:password@localhost:5432/kavach"
     )
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
 

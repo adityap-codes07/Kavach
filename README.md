@@ -1,4 +1,4 @@
-# 🛡️ SmartShield: Context-Aware Email Security Extension
+# 🛡️ Kavach: Context-Aware Email Security Extension
 
 > **BERT + Explainable AI · Browser Extension · Publication-Quality Research**
 
@@ -12,7 +12,7 @@
 
 ## Overview
 
-SmartShield is a production-ready, publication-quality email security system that:
+Kavach is a production-ready, publication-quality email security system that:
 
 | Feature | Detail |
 |---|---|
@@ -31,14 +31,14 @@ SmartShield is a production-ready, publication-quality email security system tha
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-org/smartshield.git
-cd smartshield
+git clone https://github.com/your-org/kavach.git
+cd kavach
 ```
 
 ### 2. Backend Setup
 ```bash
 cd backend
-python -m venv venv && source venv/bin/activate
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 cp .env.example .env          # edit with your API keys
 alembic upgrade head           # run database migrations
@@ -50,7 +50,7 @@ uvicorn app.main:app --reload  # start dev server → http://localhost:8000
 # Option A: Download from HuggingFace Hub (recommended)
 python -c "
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-model = AutoModelForSequenceClassification.from_pretrained('your-org/smartshield-bert')
+model = AutoModelForSequenceClassification.from_pretrained('your-org/kavach-bert')
 model.save_pretrained('checkpoints/bert_v1')
 "
 
@@ -103,7 +103,7 @@ docker-compose up -d
 ## Project Structure
 
 ```
-smartshield/
+kavach/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                    # FastAPI application entry point
@@ -144,7 +144,7 @@ smartshield/
 │   └── ieee_paper.md                  # Full IEEE-format research paper
 │
 ├── tests/
-│   └── test_smartshield.py            # Unit + integration tests
+│   └── test_kavach.py            # Unit + integration tests
 │
 ├── docker-compose.yml
 └── README.md
@@ -249,7 +249,7 @@ Create `.env` from `.env.example`:
 
 ```bash
 # Required
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/smartshield
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/kavach
 REDIS_URL=redis://localhost:6379/0
 MODEL_PATH=./checkpoints/bert_v1
 
@@ -276,10 +276,10 @@ pytest tests/ -v
 pytest tests/ --cov=app --cov-report=html --cov-fail-under=85
 
 # Specific test class
-pytest tests/test_smartshield.py::TestURLAnalyzer -v
+pytest tests/test_kavach.py::TestURLAnalyzer -v
 
 # Performance tests only
-pytest tests/test_smartshield.py::TestPerformance -v
+pytest tests/test_kavach.py::TestPerformance -v
 ```
 
 ---
@@ -296,9 +296,9 @@ pytest tests/test_smartshield.py::TestPerformance -v
 ## Citation
 
 ```bibtex
-@article{smartshield2024,
-  title     = {SmartShield: Context-Aware Email Security Extension Using BERT and Explainable AI},
-  author    = {SmartShield Research Team},
+@article{kavach2024,
+  title     = {Kavach: Context-Aware Email Security Extension Using BERT and Explainable AI},
+  author    = {Kavach Research Team},
   journal   = {IEEE Transactions on Information Forensics and Security},
   year      = {2024},
   note      = {Under review}
@@ -312,5 +312,3 @@ pytest tests/test_smartshield.py::TestPerformance -v
 MIT License — see [LICENSE](LICENSE) for details.
 
 ---
-
-*SmartShield Research Team · 2024*

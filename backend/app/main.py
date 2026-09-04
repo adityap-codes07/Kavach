@@ -1,8 +1,8 @@
 """
-SmartShield: Context-Aware Email Security Extension
+Kavach: Context-Aware Email Security Extension
 FastAPI Backend — Main Application Entry Point
 
-Authors: SmartShield Research Team
+Authors: Kavach Research Team
 Version: 1.0.0
 License: MIT
 """
@@ -31,18 +31,18 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 REQUEST_COUNT = Counter(
-    "smartshield_requests_total",
+    "kavach_requests_total",
     "Total HTTP requests",
     ["method", "endpoint", "status"],
 )
 REQUEST_LATENCY = Histogram(
-    "smartshield_request_latency_seconds",
+    "kavach_request_latency_seconds",
     "HTTP request latency",
     ["endpoint"],
     buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
 )
 INFERENCE_LATENCY = Histogram(
-    "smartshield_inference_latency_ms",
+    "kavach_inference_latency_ms",
     "ML inference latency in ms",
     buckets=[10, 25, 50, 100, 250, 500, 1000],
 )
@@ -57,20 +57,20 @@ if settings.SENTRY_DSN:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle handler."""
-    logger.info("🛡️  SmartShield API starting up …")
+    logger.info("🛡️  Kavach API starting up …")
     # Warm up BERT model (loads weights into GPU/CPU memory once)
     app.state.classifier = BERTClassifier.load(settings.MODEL_PATH)
     app.state.analyzer = EmailAnalyzer(classifier=app.state.classifier)
     logger.info("✅ Models loaded — API is ready to serve requests.")
     yield
-    logger.info("🔴 SmartShield API shutting down …")
+    logger.info("🔴 Kavach API shutting down …")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FastAPI Application
 # ─────────────────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="SmartShield API",
+    title="Kavach API",
     description=(
         "Context-Aware Email Security API using BERT and Explainable AI. "
         "Provides spam detection, phishing analysis, sender reputation, "
@@ -87,9 +87,10 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=[o for o in settings.ALLOWED_ORIGINS if "*" not in o],
+    allow_origin_regex=r"^chrome-extension://.*$",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -144,7 +145,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled exception: %s", exc)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error. Please try again."},
+        content={"detail": f"Internal server error: {str(exc)}"},
     )
 
 

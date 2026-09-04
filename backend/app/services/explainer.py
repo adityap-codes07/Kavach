@@ -1,5 +1,5 @@
 """
-SmartShield — Explainability Service
+Kavach — Explainability Service
 ======================================
 Methods:
   1. SHAP (KernelExplainer on BERT pipeline)
@@ -71,14 +71,15 @@ class ExplainabilityService:
             return False
 
     # ── Public entry point ────────────────────────────────────────────────────
-    def explain(self, text: str, bert_result) -> ExplainResult:
+    def explain(self, text: str, bert_result, method: str = "attention") -> ExplainResult:
         """
-        Selects best available explanation method:
-        SHAP > LIME > Attention rollout.
+        Selects explanation method.
+        Defaults to Attention Rollout (<5ms) for real-time extension responsiveness.
+        Heavy perturbation explainers (SHAP/LIME) are reserved for explicit offline requests.
         """
-        if self._shap_available:
+        if method == "shap" and self._shap_available:
             return self._explain_shap(text, bert_result)
-        elif self._lime_available:
+        elif method == "lime" and self._lime_available:
             return self._explain_lime(text, bert_result)
         else:
             return self._explain_attention(text, bert_result)

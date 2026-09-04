@@ -1,4 +1,4 @@
-# SmartShield — GitHub Actions CI/CD Pipeline
+# Kavach — GitHub Actions CI/CD Pipeline
 # =============================================
 # Stages:
 #   1. test       → unit tests + coverage
@@ -7,7 +7,7 @@
 #   4. evaluate   → model benchmark (on schedule)
 #   5. deploy     → push to registry + Kubernetes rollout
 
-name: SmartShield CI/CD
+name: Kavach CI/CD
 
 on:
   push:
@@ -20,7 +20,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/smartshield-api
+  IMAGE_NAME: ${{ github.repository }}/kavach-api
   PYTHON_VERSION: "3.11"
 
 jobs:
@@ -35,8 +35,8 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: smartshield_test
-          POSTGRES_USER: smartshield
+          POSTGRES_DB: kavach_test
+          POSTGRES_USER: kavach
           POSTGRES_PASSWORD: testpass
         ports:
           - 5432:5432
@@ -76,7 +76,7 @@ jobs:
       - name: Run unit and integration tests
         working-directory: backend
         env:
-          DATABASE_URL: postgresql+asyncpg://smartshield:testpass@localhost:5432/smartshield_test
+          DATABASE_URL: postgresql+asyncpg://kavach:testpass@localhost:5432/kavach_test
           REDIS_URL: redis://localhost:6379/1
           MODEL_PATH: tests/fixtures/mock_model
           DEBUG: "true"
@@ -156,7 +156,7 @@ jobs:
       - name: Upload extension artifact
         uses: actions/upload-artifact@v4
         with:
-          name: smartshield-extension-dist
+          name: kavach-extension-dist
           path: extension/dist/
           retention-days: 30
 
@@ -220,7 +220,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://smartshield-api.yourdomain.com
+      url: https://kavach-api.yourdomain.com
 
     steps:
       - uses: actions/checkout@v4
@@ -237,18 +237,18 @@ jobs:
 
       - name: Run database migrations
         run: |
-          kubectl exec -n smartshield deploy/smartshield-api \
+          kubectl exec -n kavach deploy/kavach-api \
             -- alembic upgrade head
 
       - name: Deploy new image
         run: |
-          kubectl set image -n smartshield \
-            deployment/smartshield-api \
+          kubectl set image -n kavach \
+            deployment/kavach-api \
             api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${GITHUB_SHA::7}
 
       - name: Wait for rollout
         run: |
-          kubectl rollout status -n smartshield deployment/smartshield-api \
+          kubectl rollout status -n kavach deployment/kavach-api \
             --timeout=300s
 
       - name: Run smoke tests
@@ -264,7 +264,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "✅ SmartShield deployed successfully to production (SHA: ${{ github.sha }})"
+              "text": "✅ Kavach deployed successfully to production (SHA: ${{ github.sha }})"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -272,7 +272,7 @@ jobs:
       - name: Rollback on failure
         if: failure()
         run: |
-          kubectl rollout undo -n smartshield deployment/smartshield-api
+          kubectl rollout undo -n kavach deployment/kavach-api
           echo "⏪ Rolled back to previous version"
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -298,14 +298,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp s3://smartshield-datasets/test.jsonl data/processed/test.jsonl
+          aws s3 cp s3://kavach-datasets/test.jsonl data/processed/test.jsonl
 
       - name: Download model checkpoints
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 sync s3://smartshield-models/checkpoints/ checkpoints/
+          aws s3 sync s3://kavach-models/checkpoints/ checkpoints/
 
       - name: Run evaluation
         run: |

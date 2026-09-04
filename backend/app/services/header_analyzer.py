@@ -1,5 +1,5 @@
 """
-SmartShield — Header Analyzer Service
+Kavach — Header Analyzer Service
 =======================================
 Analyzes:
   - SPF (Sender Policy Framework)

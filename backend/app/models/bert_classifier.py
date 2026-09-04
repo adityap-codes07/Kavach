@@ -1,5 +1,5 @@
 """
-SmartShield — BERT-based Email Classifier
+Kavach — BERT-based Email Classifier
 ==========================================
 Supports: bert-base-uncased, distilbert-base-uncased, roberta-base
 Fine-tuned on: Enron + SpamAssassin + CEAS 2008 + Nazario Phishing Corpus
@@ -155,6 +155,8 @@ class BERTClassifier:
         self.model.eval()
 
     def _tokenize(self, text: Union[str, List[str]]) -> dict:
+        if isinstance(text, (list, tuple, np.ndarray)):
+            text = [str(t) for t in text]
         return self.tokenizer(
             text,
             padding=True,
@@ -178,7 +180,7 @@ class BERTClassifier:
             attention_mask=attention_mask,
         )
 
-        if self.use_attention_pooling:
+        if getattr(self, "use_attention_pooling", False) and hasattr(self, "_custom_head"):
             hidden = outputs.hidden_states[-1]          # last layer (B, T, H)
             logits = self._custom_head(hidden, attention_mask)
         else:
@@ -281,6 +283,9 @@ class BERTClassifier:
                 torch.load(head_path, map_location=instance.device)
             )
             instance._custom_head.eval()
+            instance.use_attention_pooling = True
+        else:
+            instance.use_attention_pooling = False
 
         logger.info("Model loaded from %s", load_dir)
         return instance
